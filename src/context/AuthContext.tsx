@@ -19,7 +19,7 @@ interface AuthContextType {
   uploadingImage: boolean;
   isSupabaseConnected: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (customEmail?: string, customName?: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password?: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -311,40 +311,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Google OAuth Login
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (customEmail?: string, customName?: string) => {
     setLoading(true);
     const client = getSupabaseClient();
+    const targetEmail = (customEmail || INITIAL_SUPER_ADMIN_EMAIL).trim().toLowerCase();
+    const isSuperAdminEmail = targetEmail === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase();
 
-    // If live Supabase client is configured, trigger OAuth redirect
-    if (client) {
+    // 1. If live Supabase client is configured and no specific mock account was explicitly requested
+    if (client && !customEmail) {
       try {
-        const { error } = await client.auth.signInWithOAuth({
+        const { data, error } = await client.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: `${window.location.origin}/`,
           },
         });
-        if (error) {
-          setLoading(false);
-          toast.error('Google Sign-In Error', error.message);
-          return { success: false, error: error.message };
+        if (!error && data?.url) {
+          window.location.href = data.url;
+          return { success: true };
         }
-        return { success: true };
       } catch (err: any) {
         console.warn('OAuth attempt failed:', err);
       }
     }
 
-    // Direct Super Admin sign-in for Helen Danjuma
-    const googleUser =
-      BackendSecuritySimulator.getProfiles().find(
-        (p) => p.email.toLowerCase() === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase()
-      ) || INITIAL_SEED_PROFILES[0];
+    // 2. Local / Sandbox Google Authentication
+    const allProfiles = BackendSecuritySimulator.getProfiles();
+    let user = allProfiles.find((p) => p.email.toLowerCase() === targetEmail);
 
-    setCurrentUser(googleUser);
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(googleUser));
+    if (!user) {
+      // Create new profile for this Google user
+      const assignedRole: UserRole = isSuperAdminEmail ? 'super_admin' : 'member';
+      const created: UserProfile = {
+        id: `p-${Math.random().toString(36).substring(2, 9)}`,
+        user_id: `u-${Math.random().toString(36).substring(2, 9)}`,
+        full_name: customName?.trim() || targetEmail.split('@')[0],
+        email: targetEmail,
+        role: assignedRole,
+        profile_image_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80`,
+        phone: '',
+        location: '',
+        bio: isSuperAdminEmail
+          ? 'Chief Technology Architect & Super Administrator'
+          : 'CurriculumCraft platform member',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const res = BackendSecuritySimulator.createProfile(created);
+      user = res.profile || created;
+    }
+
+    setCurrentUser(user);
+    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
     setLoading(false);
-    toast.success('Signed in with Google', `Welcome back, ${googleUser.full_name}! (Super Admin)`);
+    toast.success('Signed in with Google', `Welcome, ${user.full_name}! (${user.role})`);
     return { success: true };
   };
 

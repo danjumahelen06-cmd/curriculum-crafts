@@ -1,34 +1,24 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { FileText, Lock, Mail, ArrowRight, ShieldCheck, ShieldAlert, User, Shield } from 'lucide-react';
+import { GoogleAuthModal } from '../../components/auth/GoogleAuthModal';
 
 interface LoginPageProps {
   navigate: (path: string) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ navigate }) => {
-  const { login, loginWithGoogle, currentUser, logout, loading, isSupabaseConnected } = useAuth();
+  const { login, currentUser, logout, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   const fillDemoAccount = (demoEmail: string, demoPass = 'Password123!') => {
     setEmail(demoEmail);
     setPassword(demoPass);
     setFormError(null);
-  };
-
-  const handleGoogleLogin = async () => {
-    setFormError(null);
-    setSubmitting(true);
-    const res = await loginWithGoogle();
-    setSubmitting(false);
-    if (res.success) {
-      navigate('/dashboard');
-    } else {
-      setFormError(res.error || 'Google authentication failed.');
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,7 +96,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate }) => {
         <div>
           <button
             type="button"
-            onClick={handleGoogleLogin}
+            onClick={() => setShowGoogleModal(true)}
             disabled={submitting || loading}
             className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-800 font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2.5 disabled:opacity-50 cursor-pointer"
           >
@@ -246,6 +236,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate }) => {
           </button>
         </div>
       </div>
+
+      <GoogleAuthModal
+        isOpen={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        onSuccess={() => navigate('/dashboard')}
+        mode="signin"
+      />
     </div>
   );
 };

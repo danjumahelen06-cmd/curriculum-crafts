@@ -1,35 +1,21 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { FileText, Lock, Mail, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { GoogleAuthModal } from '../../components/auth/GoogleAuthModal';
 
 interface SignupPageProps {
   navigate: (path: string) => void;
 }
 
 export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
-  const { signup, loginWithGoogle, currentUser, logout, loading, isSupabaseConnected } = useAuth();
+  const { signup, currentUser, logout, loading } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  const handleGoogleSignup = async () => {
-    setFormError(null);
-    if (!isSupabaseConnected) {
-      setFormError('Google OAuth requires connecting your Supabase project in Settings. Please use the form below to create your account.');
-      return;
-    }
-    setSubmitting(true);
-    const res = await loginWithGoogle();
-    setSubmitting(false);
-    if (res.success) {
-      navigate('/dashboard');
-    } else {
-      setFormError(res.error || 'Google authentication failed.');
-    }
-  };
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +105,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
         <div>
           <button
             type="button"
-            onClick={handleGoogleSignup}
+            onClick={() => setShowGoogleModal(true)}
             disabled={submitting || loading}
             className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-800 font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2.5 disabled:opacity-50 cursor-pointer"
           >
@@ -236,12 +222,19 @@ export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
           Already have an account?{' '}
           <button
             onClick={() => navigate('/login')}
-            className="font-semibold text-indigo-600 hover:text-indigo-500"
+            className="font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer"
           >
             Sign in
           </button>
         </div>
       </div>
+
+      <GoogleAuthModal
+        isOpen={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        onSuccess={() => navigate('/dashboard')}
+        mode="signup"
+      />
     </div>
   );
 };
