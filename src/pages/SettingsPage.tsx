@@ -27,7 +27,7 @@ export const SettingsPage: React.FC = () => {
   const { isSupabaseConnected } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<'security_tests' | 'connection' | 'sql_schema'>('security_tests');
+  const [activeTab, setActiveTab] = useState<'security_tests' | 'connection' | 'sql_schema' | 'discord_oauth'>('security_tests');
 
   // Supabase connection form state
   const [supabaseUrl, setSupabaseUrl] = useState('');
@@ -173,10 +173,10 @@ CREATE POLICY "Role based image view policy" ON storage.objects
       </div>
 
       {/* Tabs */}
-      <div className="bg-white p-1.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-1 max-w-md">
+      <div className="bg-white p-1.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-1 max-w-2xl">
         <button
           onClick={() => setActiveTab('security_tests')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+          className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
             activeTab === 'security_tests'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
@@ -186,7 +186,7 @@ CREATE POLICY "Role based image view policy" ON storage.objects
         </button>
         <button
           onClick={() => setActiveTab('connection')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+          className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
             activeTab === 'connection'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
@@ -196,13 +196,26 @@ CREATE POLICY "Role based image view policy" ON storage.objects
         </button>
         <button
           onClick={() => setActiveTab('sql_schema')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+          className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
             activeTab === 'sql_schema'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           PostgreSQL DDL
+        </button>
+        <button
+          onClick={() => setActiveTab('discord_oauth')}
+          className={`px-3 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+            activeTab === 'discord_oauth'
+              ? 'bg-[#5865F2] text-white shadow-xs'
+              : 'text-slate-600 hover:text-[#5865F2]'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 127.14 96.36">
+            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z" />
+          </svg>
+          Discord Setup Guide
         </button>
       </div>
 
@@ -444,6 +457,172 @@ CREATE POLICY "Role based image view policy" ON storage.objects
     )
   );`}
             </pre>
+          </div>
+        </div>
+      )}
+      {/* 4. Discord OAuth Setup Guide */}
+      {activeTab === 'discord_oauth' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#5865F2] text-white flex items-center justify-center shadow-xs">
+                  <svg className="w-6 h-6 fill-current" viewBox="0 0 127.14 96.36">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.91,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,45.91,96.12,53,91.08,65.69,84.69,65.69Z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">
+                    Discord OAuth Integration Setup
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Step-by-step instructions to configure Discord OAuth in the Discord Developer Portal and Supabase Auth.
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href="https://discord.com/developers/applications"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto"
+              >
+                <span>Discord Developer Portal</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+            {/* Redirect URLs to copy */}
+            <div className="mt-6 space-y-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                1. Required OAuth Redirect URLs to Add in Discord
+              </h3>
+              <p className="text-xs text-slate-600">
+                In your Discord Application under <strong>OAuth2 &rarr; General &rarr; Redirects</strong>, add these URLs:
+              </p>
+
+              <div className="space-y-2">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-700">Supabase Auth Callback URL (Primary)</div>
+                    <code className="text-xs font-mono text-indigo-700 break-all">
+                      {supabaseUrl ? `${supabaseUrl}/auth/v1/callback` : 'https://<your-supabase-project-id>.supabase.co/auth/v1/callback'}
+                    </code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const urlToCopy = supabaseUrl ? `${supabaseUrl}/auth/v1/callback` : 'https://<your-supabase-project-id>.supabase.co/auth/v1/callback';
+                      navigator.clipboard.writeText(urlToCopy);
+                      toast.success('Copied', 'Supabase Callback URL copied to clipboard.');
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1 shrink-0 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-700">Vercel Deployment URL</div>
+                    <code className="text-xs font-mono text-indigo-700 break-all">
+                      https://curriculum-crafts.vercel.app/
+                    </code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://curriculum-crafts.vercel.app/');
+                      toast.success('Copied', 'Vercel URL copied to clipboard.');
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1 shrink-0 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-700">Development / Preview Container URL</div>
+                    <code className="text-xs font-mono text-indigo-700 break-all">
+                      https://ais-dev-kd5kl77zsl2ttrmhaqu4ke-565837962579.europe-west3.run.app/
+                    </code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://ais-dev-kd5kl77zsl2ttrmhaqu4ke-565837962579.europe-west3.run.app/');
+                      toast.success('Copied', 'Development URL copied to clipboard.');
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1 shrink-0 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Step-by-Step Instructions */}
+            <div className="mt-8 space-y-4">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                2. Step-by-Step Setup Instructions
+              </h3>
+
+              <div className="space-y-3 text-xs text-slate-700">
+                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1.5">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#5865F2] text-white flex items-center justify-center text-[10px]">1</span>
+                    Create Application in Discord Developer Portal
+                  </div>
+                  <p className="text-slate-600 pl-7">
+                    Open <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer" className="text-indigo-600 font-semibold underline">Discord Developer Portal</a> and click <strong>New Application</strong>. Name it <em>CurriculumCraft</em>.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1.5">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#5865F2] text-white flex items-center justify-center text-[10px]">2</span>
+                    Add OAuth2 Redirects in Discord
+                  </div>
+                  <p className="text-slate-600 pl-7">
+                    Navigate to <strong>OAuth2 &rarr; General</strong> in the left menu. Click <strong>Add Redirect</strong> and paste your Supabase callback URL (<code className="bg-slate-100 px-1 py-0.5 rounded">https://&lt;your-project-id&gt;.supabase.co/auth/v1/callback</code>). Click <strong>Save Changes</strong>.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1.5">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#5865F2] text-white flex items-center justify-center text-[10px]">3</span>
+                    Copy Client ID & Client Secret
+                  </div>
+                  <p className="text-slate-600 pl-7">
+                    Under <strong>OAuth2 &rarr; General</strong>, copy the <strong>Client ID</strong> and click <strong>Reset Secret</strong> to copy the <strong>Client Secret</strong>.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-1.5">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#5865F2] text-white flex items-center justify-center text-[10px]">4</span>
+                    Enable Discord Provider in Supabase Dashboard
+                  </div>
+                  <p className="text-slate-600 pl-7">
+                    In your Supabase Dashboard, go to <strong>Authentication &rarr; Providers &rarr; Discord</strong>. Toggle <strong>Enable Discord</strong>, paste your <strong>Client ID</strong> and <strong>Client Secret</strong>, and click <strong>Save</strong>.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/60 space-y-1.5">
+                  <div className="font-bold text-emerald-950 flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    Done! Test Discord Sign-In
+                  </div>
+                  <p className="text-emerald-800 pl-7">
+                    Users can now click <strong>Continue with Discord</strong> on the login page or <strong>Sign up with Discord</strong> on the registration page to authenticate seamlessly!
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

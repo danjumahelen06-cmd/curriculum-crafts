@@ -24,6 +24,17 @@ import { SuperAdminDashboardPage } from './pages/SuperAdminDashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const normalizePath = (p: string) => {
+  // If hash routing is used like /#/signup or #/login or #signup
+  if (typeof window !== 'undefined' && window.location.hash) {
+    const rawHash = window.location.hash;
+    if (rawHash.startsWith('#/') || rawHash.startsWith('#')) {
+      const fromHash = rawHash.replace(/^#\/?/, '/');
+      if (fromHash && fromHash !== '/' && !fromHash.includes('access_token')) {
+        return fromHash.split('?')[0].replace(/\/+$/, '') || '/';
+      }
+    }
+  }
+
   if (!p) return '/';
   const withoutParams = p.split('?')[0].split('#')[0];
   const cleaned = withoutParams.replace(/\/+$/, '');
@@ -35,7 +46,20 @@ function Router() {
   const [currentPath, setCurrentPath] = useState(normalizePath(window.location.pathname));
 
   useEffect(() => {
-    // Gracefully handle OAuth callback hashes or params if returning from redirect
+    // 1. Recover path if served via public/404.html on static hosts like Vercel
+    try {
+      const redirect = sessionStorage.getItem('spa_redirect');
+      if (redirect) {
+        sessionStorage.removeItem('spa_redirect');
+        window.history.replaceState({}, '', redirect);
+        setCurrentPath(normalizePath(redirect));
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Gracefully handle OAuth callback hashes or params if returning from redirect
     if (
       window.location.hash.includes('access_token') ||
       window.location.search.includes('code=') ||
@@ -44,13 +68,19 @@ function Router() {
     ) {
       window.history.replaceState({}, '', '/dashboard');
       setCurrentPath('/dashboard');
+      return;
     }
 
-    const handlePopState = () => {
+    const handleRouteUpdate = () => {
       setCurrentPath(normalizePath(window.location.pathname));
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    window.addEventListener('popstate', handleRouteUpdate);
+    window.addEventListener('hashchange', handleRouteUpdate);
+    return () => {
+      window.removeEventListener('popstate', handleRouteUpdate);
+      window.removeEventListener('hashchange', handleRouteUpdate);
+    };
   }, []);
 
   const navigate = (path: string) => {

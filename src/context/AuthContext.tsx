@@ -20,6 +20,7 @@ interface AuthContextType {
   isSupabaseConnected: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (customEmail?: string, customName?: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithDiscord: (customEmail?: string, customUsername?: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password?: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -369,6 +370,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // Discord OAuth Login
+  const loginWithDiscord = async (customEmail?: string, customUsername?: string) => {
+    setLoading(true);
+    const client = getSupabaseClient();
+    const defaultDiscordEmail = `${customUsername ? customUsername.toLowerCase().replace(/[^a-z0-9]/g, '') : 'discorduser'}@discord.com`;
+    const targetEmail = (customEmail || defaultDiscordEmail).trim().toLowerCase();
+    const isSuperAdminEmail = targetEmail === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase();
+
+    // 1. If live Supabase client is configured and no specific mock account was explicitly requested
+    if (client && !customEmail && !customUsername) {
+      try {
+        const { data, error } = await client.auth.signInWithOAuth({
+          provider: 'discord',
+          options: {
+            redirectTo: `${window.location.origin}/`,
+            scopes: 'identify email',
+          },
+        });
+        if (!error && data?.url) {
+          window.location.href = data.url;
+          return { success: true };
+        }
+      } catch (err: any) {
+        console.warn('Live Discord OAuth attempt failed:', err);
+      }
+    }
+
+    // 2. Local / Sandbox Discord Authentication
+    const allProfiles = BackendSecuritySimulator.getProfiles();
+    let user = allProfiles.find((p) => p.email.toLowerCase() === targetEmail);
+
+    if (!user) {
+      const assignedRole: UserRole = isSuperAdminEmail ? 'super_admin' : 'member';
+      const displayName = customUsername?.trim() || customEmail?.split('@')[0] || 'Discord Member';
+      const created: UserProfile = {
+        id: `p-${Math.random().toString(36).substring(2, 9)}`,
+        user_id: `u-${Math.random().toString(36).substring(2, 9)}`,
+        full_name: displayName,
+        email: targetEmail,
+        role: assignedRole,
+        profile_image_url: `https://images.unsplash.com/photo-1614680376593-902f749f7ffc?auto=format&fit=crop&w=400&q=80`,
+        phone: '',
+        location: '',
+        bio: isSuperAdminEmail
+          ? 'Chief Technology Architect & Super Administrator (Discord Verified)'
+          : 'Verified Discord Community Member',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const res = BackendSecuritySimulator.createProfile(created);
+      user = res.profile || created;
+    }
+
+    setCurrentUser(user);
+    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+    setLoading(false);
+    toast.success('Signed in with Discord', `Welcome, ${user.full_name}! (${user.role})`);
+    return { success: true };
+  };
+
   // Logout
   const logout = async () => {
     const client = getSupabaseClient();
@@ -605,6 +667,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSupabaseConnected,
         login,
         loginWithGoogle,
+        loginWithDiscord,
         signup,
         logout,
         resetPassword,
