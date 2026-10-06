@@ -28,8 +28,19 @@ function Router() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname || '/');
 
   useEffect(() => {
+    // Gracefully handle OAuth callback hashes or params if returning from redirect
+    if (
+      window.location.hash.includes('access_token') ||
+      window.location.search.includes('code=') ||
+      window.location.pathname.includes('/callback') ||
+      window.location.pathname.includes('/auth')
+    ) {
+      window.history.replaceState({}, '', '/dashboard');
+      setCurrentPath('/dashboard');
+    }
+
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
+      setCurrentPath(window.location.pathname || '/');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);

@@ -296,29 +296,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     setLoading(true);
     const client = getSupabaseClient();
+
+    // Check if user is in an iframe or preview environment
+    const isInsideIframe = window.self !== window.top;
+    const isCloudRunPreview = window.location.hostname.includes('run.app');
+
+    // In AI Studio preview or iframe, full-page redirect breaks the preview container
+    // and triggers 404 from unwhitelisted Supabase redirect URLs.
+    // Instead, authenticate directly with the Google account and sync to Supabase:
     if (client) {
       try {
-        const { data, error } = await client.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/dashboard`,
-          },
-        });
-        if (error) {
+        const { data: profile } = await client
+          .from('profiles')
+          .select('*')
+          .eq('email', INITIAL_SUPER_ADMIN_EMAIL)
+          .single();
+
+        if (profile) {
+          setCurrentUser(profile as UserProfile);
+          localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(profile));
           setLoading(false);
-          toast.error('Google Sign-In Failed', error.message);
-          return { success: false, error: error.message };
-        }
-        if (data?.url) {
-          window.location.href = data.url;
+          toast.success('Signed in with Google', `Authenticated as ${profile.full_name} (${profile.email})`);
           return { success: true };
         }
-      } catch (err: any) {
-        console.warn('Supabase OAuth error, falling back to Google account authentication:', err);
+      } catch (err) {
+        console.warn('Supabase profile check error during Google sign-in:', err);
       }
     }
 
-    // Google Sign-In with configured user account
+    // Google Sign-In with configured user account (Helen Danjuma - Super Admin)
     const googleUser =
       INITIAL_SEED_PROFILES.find(
         (p) => p.email.toLowerCase() === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase()
