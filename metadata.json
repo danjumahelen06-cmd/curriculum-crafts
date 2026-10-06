@@ -1,0 +1,6 @@
+{
+  "name": "Curriculum Craft - CV Formatter",
+  "description": "Professional CV Formatting Web Application with Supabase authentication, secure role-based profile directory, and ATS-friendly CV designer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
