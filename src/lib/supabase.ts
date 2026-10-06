@@ -288,7 +288,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 
 // Local storage storage engine with strict backend policy enforcement
 export class BackendSecuritySimulator {
-  private static getProfiles(): UserProfile[] {
+  public static getProfiles(): UserProfile[] {
     const raw = localStorage.getItem(LOCAL_PROFILES_KEY);
     if (!raw) {
       localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(INITIAL_SEED_PROFILES));
@@ -301,8 +301,65 @@ export class BackendSecuritySimulator {
     }
   }
 
-  private static setProfiles(profiles: UserProfile[]) {
+  public static setProfiles(profiles: UserProfile[]) {
     localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+  }
+
+  // Passwords storage for simulated sandbox auth
+  private static getPasswords(): Record<string, string> {
+    const raw = localStorage.getItem('curriculumcraft_mock_passwords');
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+
+  public static setPasswordForEmail(email: string, password: string) {
+    const pw = this.getPasswords();
+    pw[email.trim().toLowerCase()] = password;
+    localStorage.setItem('curriculumcraft_mock_passwords', JSON.stringify(pw));
+  }
+
+  public static checkPasswordForEmail(email: string, password: string): boolean {
+    const pw = this.getPasswords();
+    const stored = pw[email.trim().toLowerCase()];
+    if (!stored) {
+      // Default initial seeds accept 'Password123!' or any input of at least 6 characters
+      return password.length >= 6;
+    }
+    return stored === password;
+  }
+
+  // Create / Register New Profile
+  public static createProfile(newProfile: UserProfile): {
+    success: boolean;
+    profile?: UserProfile;
+    error?: string;
+  } {
+    const profiles = this.getProfiles();
+    const normalizedEmail = newProfile.email.trim().toLowerCase();
+    const exists = profiles.some((p) => p.email.trim().toLowerCase() === normalizedEmail);
+    if (exists) {
+      return { success: false, error: 'An account with this email address already exists.' };
+    }
+
+    // Role enforcement: new accounts are strictly member unless matching super admin email
+    const finalRole: UserRole =
+      normalizedEmail === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase() ? 'super_admin' : 'member';
+
+    const profileToSave: UserProfile = {
+      ...newProfile,
+      email: normalizedEmail,
+      role: finalRole,
+      created_at: newProfile.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    profiles.push(profileToSave);
+    this.setProfiles(profiles);
+    return { success: true, profile: profileToSave };
   }
 
   public static getCVs(): CV[] {

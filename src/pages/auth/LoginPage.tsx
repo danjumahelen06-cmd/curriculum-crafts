@@ -7,11 +7,17 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ navigate }) => {
-  const { login, loginWithGoogle, loading } = useAuth();
+  const { login, loginWithGoogle, currentUser, logout, loading, isSupabaseConnected } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const fillDemoAccount = (demoEmail: string, demoPass = 'Password123!') => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setFormError(null);
+  };
 
   const handleGoogleLogin = async () => {
     setFormError(null);
@@ -43,6 +49,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate }) => {
       setFormError(res.error || 'Failed to authenticate. Please check your credentials.');
     }
   };
+
+  if (currentUser) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <User className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Signed In</h2>
+          <p className="text-xs text-slate-600 mt-2">
+            You are logged in as <strong>{currentUser.full_name}</strong> ({currentUser.email}) with the{' '}
+            <span className="font-semibold text-indigo-600 capitalize">{currentUser.role}</span> role.
+          </p>
+          <div className="mt-6 flex flex-col gap-2.5">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-sm"
+            >
+              Continue to Dashboard
+            </button>
+            <button
+              onClick={async () => {
+                await logout();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all"
+            >
+              Sign Out & Switch Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -143,18 +182,65 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate }) => {
           <button
             type="submit"
             disabled={submitting || loading}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {submitting ? 'Authenticating...' : 'Sign In'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
+        {/* Quick Demo Test Logins */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 text-center">
+            Quick Test Logins
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('danjumahelen06@gmail.com', 'Password123!')}
+              className="p-2 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100/70 text-left transition-colors cursor-pointer"
+              title="Super Admin: danjumahelen06@gmail.com"
+            >
+              <div className="flex items-center gap-1 text-[11px] font-bold text-rose-700">
+                <ShieldAlert className="w-3 h-3 shrink-0" />
+                <span>Super Admin</span>
+              </div>
+              <div className="text-[10px] text-rose-600/80 truncate mt-0.5">Helen D.</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('marcus.sterling@curriculumcraft.io', 'Password123!')}
+              className="p-2 rounded-xl border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/70 text-left transition-colors cursor-pointer"
+              title="Admin: marcus.sterling@curriculumcraft.io"
+            >
+              <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-700">
+                <Shield className="w-3 h-3 shrink-0" />
+                <span>Admin</span>
+              </div>
+              <div className="text-[10px] text-indigo-600/80 truncate mt-0.5">Marcus S.</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('elena.rostova@designpro.dev', 'Password123!')}
+              className="p-2 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/70 text-left transition-colors cursor-pointer"
+              title="Member: elena.rostova@designpro.dev"
+            >
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                <User className="w-3 h-3 shrink-0" />
+                <span>Member</span>
+              </div>
+              <div className="text-[10px] text-emerald-600/80 truncate mt-0.5">Elena R.</div>
+            </button>
+          </div>
+        </div>
+
         <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
           Don't have an account?{' '}
           <button
             onClick={() => navigate('/signup')}
-            className="font-semibold text-indigo-600 hover:text-indigo-500"
+            className="font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer"
           >
             Sign up now
           </button>

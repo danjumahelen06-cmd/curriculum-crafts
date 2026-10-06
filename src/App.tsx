@@ -23,9 +23,16 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { SuperAdminDashboardPage } from './pages/SuperAdminDashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 
+const normalizePath = (p: string) => {
+  if (!p) return '/';
+  const withoutParams = p.split('?')[0].split('#')[0];
+  const cleaned = withoutParams.replace(/\/+$/, '');
+  return cleaned || '/';
+};
+
 function Router() {
   const { currentUser, role, isAdmin, isSuperAdmin, loading } = useAuth();
-  const [currentPath, setCurrentPath] = useState(window.location.pathname || '/');
+  const [currentPath, setCurrentPath] = useState(normalizePath(window.location.pathname));
 
   useEffect(() => {
     // Gracefully handle OAuth callback hashes or params if returning from redirect
@@ -40,15 +47,16 @@ function Router() {
     }
 
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+      setCurrentPath(normalizePath(window.location.pathname));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const navigate = (path: string) => {
-    window.history.pushState({}, '', path);
-    setCurrentPath(path);
+    const clean = normalizePath(path);
+    window.history.pushState({}, '', clean);
+    setCurrentPath(clean);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -67,68 +75,76 @@ function Router() {
 
   // Routing Switch
   const renderRoute = () => {
+    const path = normalizePath(currentPath);
+
     // Public auth routes
-    if (currentPath === '/login') {
+    if (path === '/login') {
       return <LoginPage navigate={navigate} />;
     }
-    if (currentPath === '/signup') {
+    if (path === '/signup') {
       return <SignupPage navigate={navigate} />;
     }
-    if (currentPath === '/forgot-password' || currentPath === '/reset-password') {
+    if (path === '/forgot-password' || path === '/reset-password') {
       return <ForgotPasswordPage navigate={navigate} />;
     }
 
     // Root landing
-    if (currentPath === '/') {
+    if (path === '/') {
       if (currentUser) {
         return <DashboardPage navigate={navigate} />;
       }
       return <LandingPage navigate={navigate} />;
     }
 
-    // Require authentication for all app routes
+    // Require authentication for all protected app routes
     if (!currentUser) {
       return <LoginPage navigate={navigate} />;
     }
 
     // Split-Screen CV Editor
-    if (currentPath === '/cv/new') {
+    if (path === '/cv/new') {
       return <CVEditorPage cvId="new" navigate={navigate} />;
     }
-    if (currentPath.startsWith('/cv/')) {
-      const id = currentPath.replace('/cv/', '');
+    if (path.startsWith('/cv/')) {
+      const id = path.replace('/cv/', '');
       return <CVEditorPage cvId={id} navigate={navigate} />;
     }
 
     // Core app routes
-    if (currentPath === '/dashboard') {
+    if (path === '/dashboard') {
       return <DashboardPage navigate={navigate} />;
     }
-    if (currentPath === '/my-cvs') {
+    if (path === '/my-cvs') {
       return <MyCVsPage navigate={navigate} />;
     }
-    if (currentPath === '/profiles') {
+    if (path === '/profiles') {
       return <ProfilesDirectoryPage navigate={navigate} />;
     }
-    if (currentPath === '/profile') {
+    if (path === '/profile') {
       return <MyProfilePage />;
     }
-    if (currentPath === '/settings') {
+    if (path === '/settings') {
       return <SettingsPage />;
     }
 
     // Admin Dashboard (Protected: admin, super_admin)
-    if (currentPath === '/admin') {
+    if (path === '/admin') {
+      if (!isAdmin) {
+        return <DashboardPage navigate={navigate} />;
+      }
       return <AdminDashboardPage navigate={navigate} />;
     }
 
     // Super Admin Dashboard (Protected: super_admin only)
-    if (currentPath === '/super-admin') {
+    if (path === '/super-admin') {
+      if (!isSuperAdmin) {
+        return <DashboardPage navigate={navigate} />;
+      }
       return <SuperAdminDashboardPage navigate={navigate} />;
     }
 
-    // Fallback to Dashboard
-    return <DashboardPage navigate={navigate} />;
+    // Fallback
+    return currentUser ? <DashboardPage navigate={navigate} /> : <LandingPage navigate={navigate} />;
   };
 
   return (

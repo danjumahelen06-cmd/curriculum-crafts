@@ -7,7 +7,7 @@ interface SignupPageProps {
 }
 
 export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
-  const { signup, loginWithGoogle, loading } = useAuth();
+  const { signup, loginWithGoogle, currentUser, logout, loading, isSupabaseConnected } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +17,10 @@ export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
 
   const handleGoogleSignup = async () => {
     setFormError(null);
+    if (!isSupabaseConnected) {
+      setFormError('Google OAuth requires connecting your Supabase project in Settings. Please use the form below to create your account.');
+      return;
+    }
     setSubmitting(true);
     const res = await loginWithGoogle();
     setSubmitting(false);
@@ -58,6 +62,39 @@ export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
       setFormError(res.error || 'Registration failed. Please try again.');
     }
   };
+
+  if (currentUser) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <User className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Already Signed In</h2>
+          <p className="text-xs text-slate-600 mt-2">
+            You are currently signed in as <strong>{currentUser.full_name}</strong> ({currentUser.email}) with the{' '}
+            <span className="font-semibold text-indigo-600 capitalize">{currentUser.role}</span> role.
+          </p>
+          <div className="mt-6 flex flex-col gap-2.5">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-sm"
+            >
+              Go to Dashboard
+            </button>
+            <button
+              onClick={async () => {
+                await logout();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all"
+            >
+              Sign Out to Create New Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

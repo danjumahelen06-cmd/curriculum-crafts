@@ -114,8 +114,8 @@ export const SuperAdminDashboardPage: React.FC<SuperAdminDashboardPageProps> = (
     const created: UserProfile = {
       id: `p-${Math.random().toString(36).substring(2, 9)}`,
       user_id: `u-${Math.random().toString(36).substring(2, 9)}`,
-      full_name: newUserFullName,
-      email: newUserEmail,
+      full_name: newUserFullName.trim(),
+      email: newUserEmail.trim().toLowerCase(),
       role: newUserRole,
       profile_image_url: null,
       phone: '',
@@ -125,7 +125,12 @@ export const SuperAdminDashboardPage: React.FC<SuperAdminDashboardPageProps> = (
       updated_at: new Date().toISOString(),
     };
 
-    BackendSecuritySimulator.updateProfile(currentUser, created.user_id, created);
+    const res = BackendSecuritySimulator.createProfile(created);
+    if (!res.success) {
+      toast.error('Creation Failed', res.error || 'Failed to create user account.');
+      return;
+    }
+
     toast.success('User Created', `Successfully provisioned ${created.full_name} as ${created.role}.`);
     setNewUserFullName('');
     setNewUserEmail('');

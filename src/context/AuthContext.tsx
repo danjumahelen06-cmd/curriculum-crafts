@@ -75,23 +75,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Fallback: check stored local user or default to initial super admin Helen Danjuma
+      // Fallback: check stored local user
       const stored = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          setCurrentUser(parsed);
-          setLoading(false);
-          return;
+          if (parsed && parsed.user_id && parsed.email) {
+            setCurrentUser(parsed);
+            setLoading(false);
+            return;
+          }
         } catch {
           // parse failed
         }
       }
 
-      // Default to initial seeded super admin for effortless review
-      const defaultUser = INITIAL_SEED_PROFILES[0]; // Helen Danjuma
-      setCurrentUser(defaultUser);
-      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(defaultUser));
+      // Guest / unauthenticated state by default (no automatic login)
+      setCurrentUser(null);
       setLoading(false);
     }
 
@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Refresh from simulated storage
-    const all = BackendSecuritySimulator.fetchProfiles(currentUser);
+    const all = BackendSecuritySimulator.getProfiles();
     const found = all.find((p) => p.user_id === currentUser.user_id);
     if (found) {
       setCurrentUser(found);
@@ -131,14 +131,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password = 'Password123!', fullName = '') => {
     setLoading(true);
     const client = getSupabaseClient();
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (client) {
       try {
         const { data, error } = await client.auth.signUp({
-          email,
+          email: normalizedEmail,
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: fullName.trim() },
           },
         });
 
@@ -149,7 +150,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (data.user) {
-          // Verify or poll profile creation by trigger
+          // If Supabase requires email confirmation first
+          if (!data.session) {
+            setLoading(false);
+            toast.info(
+              'Verification Email Sent',
+              'Please check your inbox to confirm your email, then sign in.'
+            );
+            return { success: true };
+          }
+
+          // Fetch profile created by PostgreSQL trigger
           let profileData: UserProfile | null = null;
           const { data: profile } = await client
             .from('profiles')
@@ -161,12 +172,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             profileData = profile as UserProfile;
           } else {
             // Profile fallback insert
-            const determinedRole: UserRole = email.toLowerCase() === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase() ? 'super_admin' : 'member';
+            const determinedRole: UserRole =
+              normalizedEmail === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase()
+                ? 'super_admin'
+                : 'member';
             const newProfile: UserProfile = {
               id: crypto.randomUUID(),
               user_id: data.user.id,
-              full_name: fullName || email.split('@')[0],
-              email: data.user.email || email,
+              full_name: fullName.trim() || normalizedEmail.split('@')[0],
+              email: data.user.email || normalizedEmail,
               role: determinedRole,
               profile_image_url: null,
               created_at: new Date().toISOString(),
@@ -178,7 +192,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setCurrentUser(profileData);
           localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(profileData));
-          toast.success('Account Created', `Welcome, ${profileData.full_name}! Role assigned: ${profileData.role}`);
+          toast.success(
+            'Account Created',
+            `Welcome, ${profileData.full_name}! You are registered as a ${profileData.role}.`
+          );
           setLoading(false);
           return { success: true };
         }
@@ -191,20 +208,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Local / Sandbox signup (Enforces that normal signup ALWAYS creates member)
-    const normalizedEmail = email.trim().toLowerCase();
-    const existing = INITIAL_SEED_PROFILES.find((p) => p.email.toLowerCase() === normalizedEmail);
-    if (existing) {
-      setLoading(false);
-      toast.error('Registration Error', 'An account with this email address already exists.');
-      return { success: false, error: 'User already exists' };
-    }
-
-    const assignedRole: UserRole = normalizedEmail === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase() ? 'super_admin' : 'member';
+    const assignedRole: UserRole =
+      normalizedEmail === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase() ? 'super_admin' : 'member';
 
     const newProfile: UserProfile = {
       id: `p-${Math.random().toString(36).substring(2, 9)}`,
       user_id: `u-${Math.random().toString(36).substring(2, 9)}`,
-      full_name: fullName.trim() || email.split('@')[0],
+      full_name: fullName.trim() || normalizedEmail.split('@')[0],
       email: normalizedEmail,
       role: assignedRole,
       profile_image_url: null,
@@ -215,12 +225,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated_at: new Date().toISOString(),
     };
 
-    // Save in simulated backend
-    BackendSecuritySimulator.updateProfile(newProfile, newProfile.user_id, newProfile);
-    setCurrentUser(newProfile);
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(newProfile));
+    // Save in simulated backend profiles database
+    const res = BackendSecuritySimulator.createProfile(newProfile);
+    if (!res.success) {
+      setLoading(false);
+      toast.error('Registration Error', res.error || 'An account with this email already exists.');
+      return { success: false, error: res.error };
+    }
+
+    BackendSecuritySimulator.setPasswordForEmail(normalizedEmail, password);
+    const createdProfile = res.profile || newProfile;
+    setCurrentUser(createdProfile);
+    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(createdProfile));
     setLoading(false);
-    toast.success('Account Registered', `Welcome ${newProfile.full_name}! You are registered as a ${assignedRole}.`);
+    toast.success(
+      'Account Registered',
+      `Welcome, ${createdProfile.full_name}! Your ${assignedRole} account is ready.`
+    );
     return { success: true };
   };
 
@@ -228,11 +249,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password = 'Password123!') => {
     setLoading(true);
     const client = getSupabaseClient();
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (client) {
       try {
         const { data, error } = await client.auth.signInWithPassword({
-          email,
+          email: normalizedEmail,
           password,
         });
 
@@ -266,23 +288,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Sandbox authentication
-    const normalizedEmail = email.trim().toLowerCase();
-    const profiles = BackendSecuritySimulator.fetchProfiles({
-      id: 'lookup',
-      user_id: 'lookup',
-      full_name: '',
-      email: '',
-      role: 'super_admin',
-      profile_image_url: null,
-      created_at: '',
-      updated_at: '',
-    });
+    const allProfiles = BackendSecuritySimulator.getProfiles();
+    const user = allProfiles.find((p) => p.email.toLowerCase() === normalizedEmail);
 
-    const user = profiles.find((p) => p.email.toLowerCase() === normalizedEmail);
     if (!user) {
       setLoading(false);
-      toast.error('Authentication Error', 'No account found with this email address.');
+      toast.error('Authentication Error', 'No account found with this email address. Please sign up first.');
       return { success: false, error: 'User not found' };
+    }
+
+    if (!BackendSecuritySimulator.checkPasswordForEmail(normalizedEmail, password)) {
+      setLoading(false);
+      toast.error('Authentication Error', 'Incorrect password. Please verify and try again.');
+      return { success: false, error: 'Incorrect password' };
     }
 
     setCurrentUser(user);
@@ -297,43 +315,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     const client = getSupabaseClient();
 
-    // Check if user is in an iframe or preview environment
-    const isInsideIframe = window.self !== window.top;
-    const isCloudRunPreview = window.location.hostname.includes('run.app');
-
-    // In AI Studio preview or iframe, full-page redirect breaks the preview container
-    // and triggers 404 from unwhitelisted Supabase redirect URLs.
-    // Instead, authenticate directly with the Google account and sync to Supabase:
+    // If live Supabase client is configured, trigger OAuth redirect
     if (client) {
       try {
-        const { data: profile } = await client
-          .from('profiles')
-          .select('*')
-          .eq('email', INITIAL_SUPER_ADMIN_EMAIL)
-          .single();
-
-        if (profile) {
-          setCurrentUser(profile as UserProfile);
-          localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(profile));
+        const { error } = await client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/`,
+          },
+        });
+        if (error) {
           setLoading(false);
-          toast.success('Signed in with Google', `Authenticated as ${profile.full_name} (${profile.email})`);
-          return { success: true };
+          toast.error('Google Sign-In Error', error.message);
+          return { success: false, error: error.message };
         }
-      } catch (err) {
-        console.warn('Supabase profile check error during Google sign-in:', err);
+        return { success: true };
+      } catch (err: any) {
+        console.warn('OAuth attempt failed:', err);
       }
     }
 
-    // Google Sign-In with configured user account (Helen Danjuma - Super Admin)
+    // Direct Super Admin sign-in for Helen Danjuma
     const googleUser =
-      INITIAL_SEED_PROFILES.find(
+      BackendSecuritySimulator.getProfiles().find(
         (p) => p.email.toLowerCase() === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase()
       ) || INITIAL_SEED_PROFILES[0];
 
     setCurrentUser(googleUser);
     localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(googleUser));
     setLoading(false);
-    toast.success('Signed in with Google', `Welcome back, ${googleUser.full_name}!`);
+    toast.success('Signed in with Google', `Welcome back, ${googleUser.full_name}! (Super Admin)`);
     return { success: true };
   };
 
