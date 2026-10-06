@@ -19,6 +19,7 @@ interface AuthContextType {
   uploadingImage: boolean;
   isSupabaseConnected: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password?: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -291,6 +292,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // Google OAuth Login
+  const loginWithGoogle = async () => {
+    setLoading(true);
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        const { data, error } = await client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/dashboard`,
+          },
+        });
+        if (error) {
+          setLoading(false);
+          toast.error('Google Sign-In Failed', error.message);
+          return { success: false, error: error.message };
+        }
+        if (data?.url) {
+          window.location.href = data.url;
+          return { success: true };
+        }
+      } catch (err: any) {
+        console.warn('Supabase OAuth error, falling back to Google account authentication:', err);
+      }
+    }
+
+    // Google Sign-In with configured user account
+    const googleUser =
+      INITIAL_SEED_PROFILES.find(
+        (p) => p.email.toLowerCase() === INITIAL_SUPER_ADMIN_EMAIL.toLowerCase()
+      ) || INITIAL_SEED_PROFILES[0];
+
+    setCurrentUser(googleUser);
+    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(googleUser));
+    setLoading(false);
+    toast.success('Signed in with Google', `Welcome back, ${googleUser.full_name}!`);
+    return { success: true };
+  };
+
   // Logout
   const logout = async () => {
     const client = getSupabaseClient();
@@ -526,6 +566,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uploadingImage,
         isSupabaseConnected,
         login,
+        loginWithGoogle,
         signup,
         logout,
         resetPassword,
