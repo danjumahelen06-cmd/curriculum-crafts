@@ -22,9 +22,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, toggleSidebar }) => {
-  const { currentUser, role, isSuperAdmin, isAdmin, logout, switchTestUser, isSupabaseConnected } = useAuth();
+  const { currentUser, role, isSuperAdmin, isAdmin, logout, isSupabaseConnected } = useAuth();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const getRoleBadge = (userRole: UserRole | null) => {
     switch (userRole) {
@@ -143,86 +142,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, toggleSid
           </nav>
         )}
 
-        {/* Right: Role Switcher & User Profile Menu */}
+        {/* Right: User Role Badge & User Profile Menu */}
         <div className="flex items-center gap-3">
-          {/* Quick Sandbox Role Switcher (Essential for verifying tests 1-10 seamlessly) */}
-          <div className="relative">
-            <button
-              onClick={() => setSwitcherOpen(!switcherOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              title="Quickly switch roles to test RLS & storage permissions"
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
-              <span className="hidden sm:inline">Role Switcher</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-
-            {switcherOpen && (
-              <div
-                className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95 duration-150"
-                onMouseLeave={() => setSwitcherOpen(false)}
-              >
-                <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100">
-                  Switch Active Role Test
-                </div>
-                <div className="space-y-1 mt-1">
-                  <button
-                    onClick={() => {
-                      switchTestUser('super_admin');
-                      setSwitcherOpen(false);
-                    }}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                      role === 'super_admin' ? 'bg-rose-50/70 font-semibold' : ''
-                    }`}
-                  >
-                    <div>
-                      <div className="font-semibold text-slate-900">Helen Danjuma</div>
-                      <div className="text-[11px] text-slate-500">Full visibility across all images</div>
-                    </div>
-                    <span className="text-[10px] uppercase font-bold text-rose-600 px-1.5 py-0.5 rounded bg-rose-100">
-                      Super
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      switchTestUser('admin');
-                      setSwitcherOpen(false);
-                    }}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                      role === 'admin' ? 'bg-indigo-50/70 font-semibold' : ''
-                    }`}
-                  >
-                    <div>
-                      <div className="font-semibold text-slate-900">Marcus Sterling</div>
-                      <div className="text-[11px] text-slate-500">Sees Member & Admin images only</div>
-                    </div>
-                    <span className="text-[10px] uppercase font-bold text-indigo-600 px-1.5 py-0.5 rounded bg-indigo-100">
-                      Admin
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      switchTestUser('member');
-                      setSwitcherOpen(false);
-                    }}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                      role === 'member' ? 'bg-emerald-50/70 font-semibold' : ''
-                    }`}
-                  >
-                    <div>
-                      <div className="font-semibold text-slate-900">Elena Rostova</div>
-                      <div className="text-[11px] text-slate-500">Sees Member images only (Admin blocked)</div>
-                    </div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-600 px-1.5 py-0.5 rounded bg-emerald-100">
-                      Member
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {currentUser && (
+            <div className="hidden sm:block">
+              {getRoleBadge(role)}
+            </div>
+          )}
 
           {currentUser ? (
             <div className="relative">

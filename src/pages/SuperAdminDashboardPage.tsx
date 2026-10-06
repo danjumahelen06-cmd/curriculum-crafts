@@ -4,6 +4,7 @@ import { UserProfile, UserRole } from '../types';
 import { BackendSecuritySimulator } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import {
+  Shield,
   ShieldAlert,
   Users,
   UserPlus,
@@ -282,9 +283,9 @@ export const SuperAdminDashboardPage: React.FC<SuperAdminDashboardPageProps> = (
                     {/* Role Promotion/Demotion Controls */}
                     <td className="py-3 px-4">
                       {isSelf ? (
-                        <span className="text-slate-400 text-[11px] italic">Super Admin (Self)</span>
+                        <span className="text-slate-400 text-xs italic">Primary Super Admin</span>
                       ) : (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           {u.role === 'member' && (
                             <button
                               onClick={() =>
@@ -294,58 +295,33 @@ export const SuperAdminDashboardPage: React.FC<SuperAdminDashboardPageProps> = (
                                   newRole: 'admin',
                                 })
                               }
-                              className="px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-[11px] flex items-center gap-1 transition-colors"
+                              className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                              title="Grant administrative rights to this member"
                             >
-                              <ArrowUpRight className="w-3 h-3" />
-                              Promote → Admin
+                              <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                              Add as Admin
                             </button>
                           )}
 
                           {u.role === 'admin' && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  setPendingConfirm({
-                                    action: 'role_change',
-                                    targetUser: u,
-                                    newRole: 'super_admin',
-                                  })
-                                }
-                                className="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-[11px] flex items-center gap-1 transition-colors"
-                              >
-                                <ArrowUpRight className="w-3 h-3" />
-                                Promote → Super Admin
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setPendingConfirm({
-                                    action: 'role_change',
-                                    targetUser: u,
-                                    newRole: 'member',
-                                  })
-                                }
-                                className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] flex items-center gap-1 transition-colors"
-                              >
-                                <ArrowDownRight className="w-3 h-3" />
-                                Demote → Member
-                              </button>
-                            </>
-                          )}
-
-                          {u.role === 'super_admin' && (
                             <button
                               onClick={() =>
                                 setPendingConfirm({
                                   action: 'role_change',
                                   targetUser: u,
-                                  newRole: 'admin',
+                                  newRole: 'member',
                                 })
                               }
-                              className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px] flex items-center gap-1 transition-colors"
+                              className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                              title="Revoke admin privileges and return to member"
                             >
-                              <ArrowDownRight className="w-3 h-3" />
-                              Demote → Admin
+                              <ArrowDownRight className="w-3.5 h-3.5 text-amber-600" />
+                              Remove Admin Access
                             </button>
+                          )}
+
+                          {u.role === 'super_admin' && !isSelf && (
+                            <span className="text-xs text-rose-600 font-medium">Co-Super Admin</span>
                           )}
                         </div>
                       )}
