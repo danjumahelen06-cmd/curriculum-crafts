@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldAlert, User, X, ArrowRight, Sparkles, HelpCircle } from 'lucide-react';
+import { User, X, ArrowRight, Sparkles, HelpCircle } from 'lucide-react';
 
 interface DiscordAuthModalProps {
   isOpen: boolean;
@@ -16,19 +16,18 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
   mode = 'signin',
 }) => {
   const { loginWithDiscord, isSupabaseConnected } = useAuth();
-  const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customUsername, setCustomUsername] = useState('');
-  const [customEmail, setCustomEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSelectAccount = async (email?: string, username?: string) => {
+  const handleSelectAccount = async (targetEmail?: string, targetUsername?: string) => {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await loginWithDiscord(email, username);
+      const res = await loginWithDiscord(targetEmail, targetUsername);
       if (res.success) {
         onSuccess();
         onClose();
@@ -42,14 +41,14 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
     }
   };
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customUsername.trim()) {
+    if (!username.trim()) {
       setError('Please enter your Discord username.');
       return;
     }
-    const emailToUse = customEmail.trim() || `${customUsername.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@discord.com`;
-    handleSelectAccount(emailToUse, customUsername.trim());
+    const emailToUse = email.trim() || `${username.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@discord.com`;
+    handleSelectAccount(emailToUse, username.trim());
   };
 
   return (
@@ -70,12 +69,12 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
               <h3 className="text-sm font-bold text-slate-900 leading-tight">
                 {mode === 'signup' ? 'Sign up with Discord' : 'Sign in with Discord'}
               </h3>
-              <p className="text-[11px] text-slate-500">Authorize your Discord identity for CurriculumCraft</p>
+              <p className="text-[11px] text-slate-500">Authorize your Discord identity</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -90,113 +89,68 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
             </div>
           )}
 
-          {/* Account Selector List */}
-          <div className="space-y-2">
-            {/* Helen Danjuma (Super Admin Discord) */}
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => handleSelectAccount('danjumahelen06@gmail.com', 'Helen Danjuma')}
-              className="w-full p-3 rounded-xl border border-slate-200 hover:border-rose-300 hover:bg-rose-50/40 text-left transition-all flex items-center justify-between group cursor-pointer disabled:opacity-50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#5865F2] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                  HD
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-slate-900 group-hover:text-rose-900">
-                    Helen Danjuma (Discord Link)
-                  </div>
-                  <div className="text-[11px] text-slate-500">danjumahelen06@gmail.com</div>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                <ShieldAlert className="w-3 h-3" />
-                Super Admin
-              </span>
-            </button>
-          </div>
-
-          {/* Toggle Custom Account */}
-          {!showCustomInput ? (
-            <button
-              type="button"
-              onClick={() => setShowCustomInput(true)}
-              className="w-full py-2.5 px-3 rounded-xl border border-dashed border-[#5865F2]/40 hover:border-[#5865F2] hover:bg-[#5865F2]/5 text-[#5865F2] text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <User className="w-3.5 h-3.5" />
-              Sign in with your Discord account name
-            </button>
+          {isSupabaseConnected ? (
+            <div className="space-y-4 text-center">
+              <p className="text-xs text-slate-600">
+                Authenticate with your official Discord account via Supabase OAuth.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSelectAccount()}
+                disabled={submitting}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{submitting ? 'Redirecting...' : 'Launch Discord OAuth'}</span>
+              </button>
+            </div>
           ) : (
-            <form onSubmit={handleCustomSubmit} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                Discord Account Details
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Discord Username <span className="text-slate-400 font-normal">(e.g. alex_coder)</span>
                 </label>
                 <input
                   type="text"
                   required
-                  value={customUsername}
-                  onChange={(e) => setCustomUsername(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   placeholder="alex_coder"
-                  className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#5865F2]"
+                  className="w-full px-3 py-2 text-xs bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#5865F2]"
                 />
               </div>
+
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Discord Email <span className="text-slate-400 font-normal">(optional)</span>
                 </label>
                 <input
                   type="email"
-                  value={customEmail}
-                  onChange={(e) => setCustomEmail(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex@example.com"
-                  className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#5865F2]"
+                  className="w-full px-3 py-2 text-xs bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#5865F2]"
                 />
               </div>
-              <div className="flex items-center gap-2 pt-1">
+
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2 px-3 rounded-lg bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  <span>{submitting ? 'Authenticating...' : 'Authorize as Member'}</span>
+                  <span>{submitting ? 'Authenticating...' : 'Authorize with Discord'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomInput(false)}
-                  className="py-2 px-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-medium cursor-pointer"
-                >
-                  Cancel
                 </button>
               </div>
             </form>
-          )}
-
-          {/* Live Supabase OAuth Option */}
-          {isSupabaseConnected && (
-            <div className="pt-2 border-t border-slate-100 text-center">
-              <button
-                type="button"
-                onClick={() => handleSelectAccount()}
-                disabled={submitting}
-                className="text-[11px] text-[#5865F2] hover:text-[#4752c4] font-semibold flex items-center justify-center gap-1 mx-auto cursor-pointer"
-              >
-                <Sparkles className="w-3 h-3" />
-                Launch Live Supabase Discord OAuth Redirect
-              </button>
-            </div>
           )}
 
           {/* Setup note */}
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 leading-relaxed flex items-start gap-2">
             <HelpCircle className="w-4 h-4 text-[#5865F2] shrink-0 mt-0.5" />
             <span>
-              To enable live Discord OAuth in production, enable the <strong>Discord Provider</strong> in your Supabase Dashboard or consult the Discord setup instructions in Settings.
+              To enable live Discord OAuth in production, enable the <strong>Discord Provider</strong> in your Supabase Dashboard.
             </span>
           </div>
         </div>

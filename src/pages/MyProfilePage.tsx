@@ -252,7 +252,7 @@ export const MyProfilePage: React.FC = () => {
               <div>
                 <span className="font-semibold text-slate-800">Security Rule: Role is Read-Only</span>
                 <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                  To prevent privilege escalation, users cannot modify their own assigned role. Only Super Administrators can alter account governance tiers.
+                  To prevent unauthorized privilege modifications, role assignments are managed by workspace security policy.
                 </p>
               </div>
             </div>

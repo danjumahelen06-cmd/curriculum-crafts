@@ -92,8 +92,8 @@ export const ProfilesDirectoryPage: React.FC<ProfilesDirectoryPageProps> = ({ na
                 Active Policy Enforcement: Logged in as <span className="capitalize text-indigo-600">{role?.replace('_', ' ')}</span>
               </div>
               <div className="text-[11px] text-slate-500 mt-0.5">
-                {role === 'member' && 'You can view Member profile images. Admin and Super Admin profile images are strictly hidden.'}
-                {role === 'admin' && 'You can view Member and Admin images. Super Admin images are strictly hidden.'}
+                {role === 'member' && 'You can view all community member profiles and ATS resumes.'}
+                {role === 'admin' && 'You can view Member and Admin images.'}
                 {role === 'super_admin' && 'You have full authorization to view profile images across all user tiers.'}
               </div>
             </div>
@@ -122,10 +122,15 @@ export const ProfilesDirectoryPage: React.FC<ProfilesDirectoryPageProps> = ({ na
         </div>
 
         <div className="flex items-center gap-1 self-start sm:self-auto">
-          {(['all', 'member', 'admin', 'super_admin'] as const).map((r) => (
+          {(role === 'super_admin'
+            ? (['all', 'member', 'admin', 'super_admin'] as const)
+            : role === 'admin'
+            ? (['all', 'member', 'admin'] as const)
+            : (['all'] as const)
+          ).map((r) => (
             <button
               key={r}
-              onClick={() => setSelectedRoleFilter(r)}
+              onClick={() => setSelectedRoleFilter(r as any)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${
                 selectedRoleFilter === r
                   ? 'bg-slate-900 text-white'

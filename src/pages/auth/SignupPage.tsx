@@ -218,7 +218,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ navigate }) => {
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <span>
-              All new registrations are automatically assigned the <strong>member</strong> role via Supabase trigger. Administrative privileges can only be granted by the Super Administrator.
+              Your profile data and CV documents are protected by strict privacy policies and PostgreSQL Row Level Security.
             </span>
           </div>
 
